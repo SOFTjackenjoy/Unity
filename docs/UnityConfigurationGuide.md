@@ -240,7 +240,7 @@ _Example:_
 Unity provides a simple (and very basic) printf-like string output implementation, which is able to print a string modified by the following format string modifiers:
 
 - __%d__ - signed value (decimal)
-- __%i__ - same as __%i__
+- __%i__ - same as __%d__
 - __%u__ - unsigned value (decimal)
 - __%f__ - float/Double (if float support is activated)
 - __%g__ - same as __%f__
@@ -251,6 +251,15 @@ Unity provides a simple (and very basic) printf-like string output implementatio
 - __%c__ - a single character
 - __%s__ - a string (e.g. "string")
 - __%%__ - The "%" symbol (escaped)
+
+Length specifiers are also supported. If you are using long long types, make sure UNITY_SUPPORT_64 is true to ensure they are printed correctly.
+
+- __%ld__ - signed long value (decimal)
+- __%lld__ - signed long long value (decimal)
+- __%lu__ - unsigned long value (decimal)
+- __%llu__ - unsigned long long value (decimal)
+- __%lx__ - unsigned long value (hexadecimal)
+- __%llx__ - unsigned long long value (hexadecimal)
 
 _Example:_
 
@@ -267,6 +276,7 @@ TEST_PRINTF("Pointer   %p\n", &a);
 TEST_PRINTF("Character %c\n", 'F');
 TEST_PRINTF("String    %s\n", "My string");
 TEST_PRINTF("Percent   %%\n");
+TEST_PRINTF("Unsigned long long %llu\n", 922337203685477580);
 TEST_PRINTF("Color Red \033[41mFAIL\033[0m\n");
 TEST_PRINTF("\n");
 TEST_PRINTF("Multiple (%d) (%i) (%u) (%x)\n", -100, 0, 200, 0x12345);
@@ -427,6 +437,36 @@ This will force Unity to support variadic macros when using its own built-in RUN
 This will rarely be necessary. Most often, Unity will automatically detect if the compiler supports variadic macros by checking to see if it's C99+ compatible.
 In the event that the compiler supports variadic macros, but is primarily C89 (ANSI), defining this option will allow you to use them.
 This option is also not necessary when using Ceedling or the test runner generator script.
+
+#### `UNITY_SUPPORT_TEST_CASES`
+
+Unity can automatically define all supported parameterized tests macros.
+That feature is disabled by default.
+To enable it, use the following example:
+
+```C
+#define UNITY_SUPPORT_TEST_CASES
+```
+
+You can manually provide required `TEST_CASE` or `TEST_RANGE` macro definitions
+before including `unity.h`, and they won't be redefined.
+If you provide one of the following macros, some of default definitions will not be
+defined:
+| User defines macro | Unity will _not_ define following macro |
+|---|---|
+| `UNITY_EXCLUDE_TEST_CASE` | `TEST_CASE` |
+| `UNITY_EXCLUDE_TEST_RANGE` | `TEST_RANGE` |
+| `TEST_CASE` | `TEST_CASE` |
+| `TEST_RANGE` | `TEST_RANGE` |
+
+`UNITY_EXCLUDE_TEST_*` defines is not processed by test runner generator script.
+If you exclude one of them from definition, you should provide your own definition
+for them or avoid using undefined `TEST_*` macro as a test generator.
+Otherwise, compiler cannot build source code file with provided call.
+
+_Note:_
+That feature requires variadic macro support by compiler. If required feature
+is not detected, it will not be enabled, even though preprocessor macro is defined.
 
 ## Getting Into The Guts
 

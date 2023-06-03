@@ -1,3 +1,5 @@
+#!/usr/bin/ruby
+
 # ==========================================
 #   Unity Project - A Test Framework for C
 #   Copyright (c) 2007 Mike Karlesky, Mark VanderVoord, Greg Williams
@@ -131,6 +133,7 @@ class UnityTestRunnerGenerator
     lines.each_with_index do |line, _index|
       # find tests
       next unless line =~ /^((?:\s*(?:TEST_CASE|TEST_RANGE)\s*\(.*?\)\s*)*)\s*void\s+((?:#{@options[:test_prefix]}).*)\s*\(\s*(.*)\s*\)/m
+      next unless line =~ /^((?:\s*(?:TEST_CASE|TEST_RANGE)\s*\(.*?\)\s*)*)\s*void\s+((?:#{@options[:test_prefix]})\w*)\s*\(\s*(.*)\s*\)/m
 
       arguments = Regexp.last_match(1)
       name = Regexp.last_match(2)
@@ -140,17 +143,23 @@ class UnityTestRunnerGenerator
 
       if @options[:use_param_tests] && !arguments.empty?
         args = []
-        arguments.scan(/\s*TEST_CASE\s*\((.*)\)\s*$/) { |a| args << a[0] }
+        type_and_args = arguments.split(/TEST_(CASE|RANGE)/)
+        for i in (1...type_and_args.length).step(2)
+          if type_and_args[i] == "CASE"
+            args << type_and_args[i + 1].sub(/^\s*\(\s*(.*?)\s*\)\s*$/m, '\1')
+            next
+          end
 
-        arguments.scan(/\s*TEST_RANGE\s*\((.*)\)\s*$/).flatten.each do |range_str|
-          args += range_str.scan(/\[\s*(-?\d+.?\d*),\s*(-?\d+.?\d*),\s*(-?\d+.?\d*)\s*\]/).map do |arg_values_str|
-            arg_values_str.map do |arg_value_str|
+          # RANGE
+          args += type_and_args[i + 1].scan(/(\[|<)\s*(-?\d+.?\d*)\s*,\s*(-?\d+.?\d*)\s*,\s*(-?\d+.?\d*)\s*(\]|>)/m).map do |arg_values_str|
+            exclude_end = arg_values_str[0] == '<' && arg_values_str[-1] == '>'
+            arg_values_str[1...-1].map do |arg_value_str|
               arg_value_str.include?('.') ? arg_value_str.to_f : arg_value_str.to_i
-            end
+            end.push(exclude_end)
           end.map do |arg_values|
-            (arg_values[0]..arg_values[1]).step(arg_values[2]).to_a
-          end.reduce do |result, arg_range_expanded|
-            result.product(arg_range_expanded)
+            Range.new(arg_values[0], arg_values[1], arg_values[3]).step(arg_values[2]).to_a
+          end.reduce(nil) do |result, arg_range_expanded|
+            result.nil? ? arg_range_expanded.map { |a| [a] } : result.product(arg_range_expanded)
           end.map do |arg_combinations|
             arg_combinations.flatten.join(', ')
           end
@@ -380,7 +389,7 @@ class UnityTestRunnerGenerator
       output.puts('  {')
       output.puts('    if (parse_status < 0)')
       output.puts('    {')
-      output.puts("      UnityPrint(\"#{filename.gsub('.c', '')}.\");")
+      output.puts("      UnityPrint(\"#{filename.gsub('.c', '').gsub(/\\/, '\\\\\\')}.\");")
       output.puts('      UNITY_PRINT_EOL();')
       tests.each do |test|
         if (!@options[:use_param_tests]) || test[:args].nil? || test[:args].empty?

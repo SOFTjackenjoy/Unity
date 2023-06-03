@@ -8,9 +8,6 @@
 #include <stdio.h>
 #include "unity.h"
 
-/* Support for Meta Test Rig */
-#define TEST_CASE(...)
-
 /* Include Passthroughs for Linking Tests */
 void putcharSpy(int c) { (void)putchar(c);}
 void flushSpy(void) {}
@@ -48,11 +45,13 @@ static int SetToOneToFailInTearDown;
 static int SetToOneMeanWeAlreadyCheckedThisGuy;
 static unsigned NextExpectedStringIndex;
 static unsigned NextExpectedCharIndex;
+static unsigned NextExpectedSpaceIndex;
 
 void suiteSetUp(void)
 {
     NextExpectedStringIndex = 0;
     NextExpectedCharIndex = 0;
+    NextExpectedSpaceIndex = 0;
 }
 
 void setUp(void)
@@ -168,4 +167,52 @@ void test_CharsArePreserved(unsigned index, char c)
     TEST_ASSERT_EQUAL(expected[index], c);
 
     NextExpectedCharIndex++;
+}
+
+TEST_RANGE([0, 10, 2])
+void test_SingleRange(unsigned value)
+{
+  TEST_ASSERT_EQUAL(0, value % 2);
+  TEST_ASSERT_LESS_OR_EQUAL(10, value);
+}
+
+TEST_RANGE([1, 2, 1], [2, 1, -1])
+void test_TwoRanges(unsigned first, unsigned second)
+{
+  TEST_ASSERT_LESS_OR_EQUAL(4, first * second);
+}
+
+TEST_RANGE(<0, 10, 2>)
+void test_SingleExclusiveRange(unsigned value)
+{
+  TEST_ASSERT_EQUAL(0, value % 2);
+  TEST_ASSERT_LESS_THAN(10, value);
+}
+
+TEST_RANGE([2, 4, 1], <1, 2, 1>)
+void test_BothInclusiveAndExclusiveRange(unsigned first, unsigned second)
+{
+  TEST_ASSERT_LESS_THAN(first, second);
+}
+
+TEST_CASE(0,
+
+          1)
+TEST_CASE(1,
+
+          2
+
+  )
+TEST_RANGE([2,
+            5  ,
+            1], [6, 6, 1])
+TEST_CASE(
+
+  6 , 7)
+void test_SpaceInTestCase(unsigned index, unsigned bigger)
+{
+  TEST_ASSERT_EQUAL_UINT32(NextExpectedSpaceIndex, index);
+  TEST_ASSERT_LESS_THAN(bigger, index);
+
+  NextExpectedSpaceIndex++;
 }

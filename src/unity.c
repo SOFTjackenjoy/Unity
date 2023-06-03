@@ -5,7 +5,6 @@
 ============================================================================ */
 
 #include "unity.h"
-#include <stddef.h>
 
 #ifndef UNITY_PROGMEM
 #define UNITY_PROGMEM
@@ -930,16 +929,19 @@ static int UnityFloatsWithin(UNITY_FLOAT delta, UNITY_FLOAT expected, UNITY_FLOA
 }
 
 /*-----------------------------------------------*/
-void UnityAssertEqualFloatArray(UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* expected,
-                                UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* actual,
-                                const UNITY_UINT32 num_elements,
-                                const char* msg,
-                                const UNITY_LINE_TYPE lineNumber,
-                                const UNITY_FLAGS_T flags)
+void UnityAssertWithinFloatArray(const UNITY_FLOAT delta,
+                                 UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* expected,
+                                 UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* actual,
+                                 const UNITY_UINT32 num_elements,
+                                 const char* msg,
+                                 const UNITY_LINE_TYPE lineNumber,
+                                 const UNITY_FLAGS_T flags)
 {
     UNITY_UINT32 elements = num_elements;
     UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* ptr_expected = expected;
     UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* ptr_actual = actual;
+    UNITY_FLOAT in_delta = delta;
+    UNITY_FLOAT current_element_delta = delta;
 
     RETURN_IF_FAIL_OR_IGNORE;
 
@@ -952,6 +954,17 @@ void UnityAssertEqualFloatArray(UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* expected,
 #endif
     }
 
+    if (isinf(in_delta))
+    {
+        return; /* Arrays will be force equal with infinite delta */
+    }
+
+    if (isnan(in_delta))
+    {
+        /* Delta must be correct number */
+        UnityPrintPointlessAndBail();
+    }
+
     if (expected == actual)
     {
         return; /* Both are NULL or same pointer */
@@ -962,9 +975,23 @@ void UnityAssertEqualFloatArray(UNITY_PTR_ATTRIBUTE const UNITY_FLOAT* expected,
         UNITY_FAIL_AND_BAIL;
     }
 
+    /* fix delta sign if need */
+    if (in_delta < 0)
+    {
+        in_delta = -in_delta;
+    }
+
     while (elements--)
     {
-        if (!UnityFloatsWithin(*ptr_expected * UNITY_FLOAT_PRECISION, *ptr_expected, *ptr_actual))
+        current_element_delta = *ptr_expected * UNITY_FLOAT_PRECISION;
+
+        if (current_element_delta < 0)
+        {
+            /* fix delta sign for correct calculations */
+            current_element_delta = -current_element_delta;
+        }
+
+        if (!UnityFloatsWithin(in_delta + current_element_delta, *ptr_expected, *ptr_actual))
         {
             UnityTestResultsFailBegin(lineNumber);
             UnityPrint(UnityStrElement);
@@ -1129,16 +1156,19 @@ static int UnityDoublesWithin(UNITY_DOUBLE delta, UNITY_DOUBLE expected, UNITY_D
 }
 
 /*-----------------------------------------------*/
-void UnityAssertEqualDoubleArray(UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* expected,
-                                 UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* actual,
-                                 const UNITY_UINT32 num_elements,
-                                 const char* msg,
-                                 const UNITY_LINE_TYPE lineNumber,
-                                 const UNITY_FLAGS_T flags)
+void UnityAssertWithinDoubleArray(const UNITY_DOUBLE delta,
+                                  UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* expected,
+                                  UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* actual,
+                                  const UNITY_UINT32 num_elements,
+                                  const char* msg,
+                                  const UNITY_LINE_TYPE lineNumber,
+                                  const UNITY_FLAGS_T flags)
 {
     UNITY_UINT32 elements = num_elements;
     UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* ptr_expected = expected;
     UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* ptr_actual = actual;
+    UNITY_DOUBLE in_delta = delta;
+    UNITY_DOUBLE current_element_delta = delta;
 
     RETURN_IF_FAIL_OR_IGNORE;
 
@@ -1151,6 +1181,17 @@ void UnityAssertEqualDoubleArray(UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* expecte
 #endif
     }
 
+    if (isinf(in_delta))
+    {
+        return; /* Arrays will be force equal with infinite delta */
+    }
+
+    if (isnan(in_delta))
+    {
+        /* Delta must be correct number */
+        UnityPrintPointlessAndBail();
+    }
+
     if (expected == actual)
     {
         return; /* Both are NULL or same pointer */
@@ -1161,9 +1202,23 @@ void UnityAssertEqualDoubleArray(UNITY_PTR_ATTRIBUTE const UNITY_DOUBLE* expecte
         UNITY_FAIL_AND_BAIL;
     }
 
+    /* fix delta sign if need */
+    if (in_delta < 0)
+    {
+        in_delta = -in_delta;
+    }
+
     while (elements--)
     {
-        if (!UnityDoublesWithin(*ptr_expected * UNITY_DOUBLE_PRECISION, *ptr_expected, *ptr_actual))
+        current_element_delta = *ptr_expected * UNITY_DOUBLE_PRECISION;
+
+        if (current_element_delta < 0)
+        {
+            /* fix delta sign for correct calculations */
+            current_element_delta = -current_element_delta;
+        }
+
+        if (!UnityDoublesWithin(in_delta + current_element_delta, *ptr_expected, *ptr_actual))
         {
             UnityTestResultsFailBegin(lineNumber);
             UnityPrint(UnityStrElement);
@@ -1236,7 +1291,7 @@ void UnityAssertGreaterOrLessDouble(const UNITY_DOUBLE threshold,
     if (!(actual < threshold) && (compare & UNITY_SMALLER_THAN)) { failed = 1; }
     if (!(actual > threshold) && (compare & UNITY_GREATER_THAN)) { failed = 1; }
 
-    if ((compare & UNITY_EQUAL_TO) && UnityFloatsWithin(threshold * UNITY_DOUBLE_PRECISION, threshold, actual)) { failed = 0; }
+    if ((compare & UNITY_EQUAL_TO) && UnityDoublesWithin(threshold * UNITY_DOUBLE_PRECISION, threshold, actual)) { failed = 0; }
 
     if (failed)
     {
@@ -1823,10 +1878,96 @@ UNITY_INTERNAL_PTR UnityDoubleToPtr(const double num)
 }
 #endif
 
+#ifdef UNITY_INCLUDE_PRINT_FORMATTED
+
+/*-----------------------------------------------
+ * printf length modifier helpers
+ *-----------------------------------------------*/
+
+enum UnityLengthModifier {
+    UNITY_LENGTH_MODIFIER_NONE,
+    UNITY_LENGTH_MODIFIER_LONG_LONG,
+    UNITY_LENGTH_MODIFIER_LONG,
+};
+
+#define UNITY_EXTRACT_ARG(NUMBER_T, NUMBER, LENGTH_MOD, VA, ARG_T) \
+do {                                                               \
+    switch (LENGTH_MOD)                                            \
+    {                                                              \
+        case UNITY_LENGTH_MODIFIER_LONG_LONG:                      \
+        {                                                          \
+            NUMBER = (NUMBER_T)va_arg(VA, long long ARG_T);        \
+            break;                                                 \
+        }                                                          \
+        case UNITY_LENGTH_MODIFIER_LONG:                           \
+        {                                                          \
+            NUMBER = (NUMBER_T)va_arg(VA, long ARG_T);             \
+            break;                                                 \
+        }                                                          \
+        case UNITY_LENGTH_MODIFIER_NONE:                           \
+        default:                                                   \
+        {                                                          \
+            NUMBER = (NUMBER_T)va_arg(VA, ARG_T);                  \
+            break;                                                 \
+        }                                                          \
+    }                                                              \
+} while (0)
+
+static enum UnityLengthModifier UnityLengthModifierGet(const char *pch, int *length)
+{
+    enum UnityLengthModifier length_mod;
+    switch (pch[0])
+    {
+        case 'l':
+            {
+                if (pch[1] == 'l')
+                {
+                    *length = 2;
+                    length_mod = UNITY_LENGTH_MODIFIER_LONG_LONG;
+                }
+                else
+                {
+                    *length = 1;
+                    length_mod = UNITY_LENGTH_MODIFIER_LONG;
+                }
+                break;
+            }
+        case 'h':
+            {
+                // short and char are converted to int
+                length_mod = UNITY_LENGTH_MODIFIER_NONE;
+                if (pch[1] == 'h')
+                {
+                    *length = 2;
+                }
+                else
+                {
+                    *length = 1;
+                }
+                break;
+            }
+        case 'j':
+        case 'z':
+        case 't':
+        case 'L':
+            {
+                // Not supported, but should gobble up the length specifier anyway
+                length_mod = UNITY_LENGTH_MODIFIER_NONE;
+                *length = 1;
+                break;
+            }
+        default:
+            {
+                length_mod = UNITY_LENGTH_MODIFIER_NONE;
+                *length = 0;
+            }
+    }
+    return length_mod;
+}
+
 /*-----------------------------------------------
  * printf helper function
  *-----------------------------------------------*/
-#ifdef UNITY_INCLUDE_PRINT_FORMATTED
 static void UnityPrintFVA(const char* format, va_list va)
 {
     const char* pch = format;
@@ -1841,12 +1982,17 @@ static void UnityPrintFVA(const char* format, va_list va)
 
                 if (pch != NULL)
                 {
+                    int length_mod_size;
+                    enum UnityLengthModifier length_mod = UnityLengthModifierGet(pch, &length_mod_size);
+                    pch += length_mod_size;
+
                     switch (*pch)
                     {
                         case 'd':
                         case 'i':
                             {
-                                const int number = va_arg(va, int);
+                                UNITY_INT number;
+                                UNITY_EXTRACT_ARG(UNITY_INT, number, length_mod, va, int);
                                 UnityPrintNumber((UNITY_INT)number);
                                 break;
                             }
@@ -1861,21 +2007,31 @@ static void UnityPrintFVA(const char* format, va_list va)
 #endif
                         case 'u':
                             {
-                                const unsigned int number = va_arg(va, unsigned int);
-                                UnityPrintNumberUnsigned((UNITY_UINT)number);
+                                UNITY_UINT number;
+                                UNITY_EXTRACT_ARG(UNITY_UINT, number, length_mod, va, unsigned int);
+                                UnityPrintNumberUnsigned(number);
                                 break;
                             }
                         case 'b':
                             {
-                                const unsigned int number = va_arg(va, unsigned int);
+                                UNITY_UINT number;
+                                UNITY_EXTRACT_ARG(UNITY_UINT, number, length_mod, va, unsigned int);
                                 const UNITY_UINT mask = (UNITY_UINT)0 - (UNITY_UINT)1;
                                 UNITY_OUTPUT_CHAR('0');
                                 UNITY_OUTPUT_CHAR('b');
-                                UnityPrintMask(mask, (UNITY_UINT)number);
+                                UnityPrintMask(mask, number);
                                 break;
                             }
                         case 'x':
                         case 'X':
+                            {
+                                UNITY_UINT number;
+                                UNITY_EXTRACT_ARG(UNITY_UINT, number, length_mod, va, unsigned int);
+                                UNITY_OUTPUT_CHAR('0');
+                                UNITY_OUTPUT_CHAR('x');
+                                UnityPrintNumberHex(number, 8);
+                                break;
+                            }
                         case 'p':
                             {
                                 const unsigned int number = va_arg(va, unsigned int);

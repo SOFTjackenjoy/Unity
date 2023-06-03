@@ -555,7 +555,7 @@ Asserts that the `actual` value is within +/- `delta` of the `expected` value.
 The nature of floating point representation is such that exact evaluations of
 equality are not guaranteed.
 
-#### `TEST_ASSERT_FLOAT_WITHIN (delta, expected, actual)`
+#### `TEST_ASSERT_FLOAT_NOT_WITHIN (delta, expected, actual)`
 
 Asserts that the `actual` value is NOT within +/- `delta` of the `expected` value.
 
@@ -572,10 +572,16 @@ code generation conventions for CMock.
 Asserts that the `actual` value is NOT "close enough to be considered equal" to the
 `expected` value.
 
+#### `TEST_ASSERT_FLOAT_ARRAY_WITHIN (delta, expected, actual, num_elements)`
+
+See Array assertion section for details. Note that individual array element
+uses user-provided delta plus default comparison delta for checking
+and is based on `TEST_ASSERT_FLOAT_WITHIN` comparison.
+
 #### `TEST_ASSERT_EQUAL_FLOAT_ARRAY (expected, actual, num_elements)`
 
 See Array assertion section for details. Note that individual array element
-float comparisons are executed using `TEST_ASSERT_EQUAL_FLOAT`.That is, user
+float comparisons are executed using `TEST_ASSERT_EQUAL_FLOAT`. That is, user
 specified delta comparison values requires a custom-implemented floating point
 array assertion.
 
@@ -667,10 +673,16 @@ code generation conventions for CMock.
 Asserts that the `actual` value is NOT "close enough to be considered equal" to the
 `expected` value.
 
+#### `TEST_ASSERT_DOUBLE_ARRAY_WITHIN (delta, expected, actual, num_elements)`
+
+See Array assertion section for details. Note that individual array element
+uses user-provided delta plus default comparison delta  for checking
+and is based on `TEST_ASSERT_DOUBLE_WITHIN` comparison.
+
 #### `TEST_ASSERT_EQUAL_DOUBLE_ARRAY (expected, actual, num_elements)`
 
 See Array assertion section for details. Note that individual array element
-double comparisons are executed using `TEST_ASSERT_EQUAL_DOUBLE`.That is, user
+double comparisons are executed using `TEST_ASSERT_EQUAL_DOUBLE`. That is, user
 specified delta comparison values requires a custom implemented double array
 assertion.
 
@@ -845,5 +857,5 @@ affect you:
 
 *Find The Latest of This And More at [ThrowTheSwitch.org][]*
 
-[assert() macro]: http://en.wikipedia.org/en/wiki/Assert.h
+[assert() macro]: http://en.wikipedia.org/wiki/Assert.h
 [ThrowTheSwitch.org]: https://throwtheswitch.org
