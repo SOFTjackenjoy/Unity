@@ -1,13 +1,15 @@
-#!/usr/bin/ruby
-#
-# unity_to_junit.rb
-#
+#!/usr/bin/env ruby
+# =========================================================================
+#   Unity - A Test Framework for C
+#   ThrowTheSwitch.org
+#   Copyright (c) 2007-26 Mike Karlesky, Mark VanderVoord, & Greg Williams
+#   SPDX-License-Identifier: MIT
+# =========================================================================
+
 require 'fileutils'
 require 'optparse'
 require 'ostruct'
 require 'set'
-
-require 'pp'
 
 VERSION = 1.0
 
@@ -99,7 +101,7 @@ class UnityToJUnit
       test_file = if test_file_str.length < 2
                     result_file
                   else
-                    test_file_str[0] + ':' + test_file_str[1]
+                    "#{test_file_str[0]}:#{test_file_str[1]}"
                   end
       result_output[:source][:path] = File.dirname(test_file)
       result_output[:source][:file] = File.basename(test_file)

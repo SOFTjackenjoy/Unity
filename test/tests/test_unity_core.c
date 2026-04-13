@@ -1,8 +1,9 @@
-/* ==========================================
-    Unity Project - A Test Framework for C
-    Copyright (c) 2007 Mike Karlesky, Mark VanderVoord, Greg Williams
-    [Released under MIT License. Please refer to license.txt for details]
-========================================== */
+/* =========================================================================
+    Unity - A Test Framework for C
+    ThrowTheSwitch.org
+    Copyright (c) 2007-26 Mike Karlesky, Mark VanderVoord, & Greg Williams
+    SPDX-License-Identifier: MIT
+========================================================================= */
 
 #include "unity.h"
 #define TEST_INSTANCES
@@ -60,7 +61,7 @@ void testUnitySizeInitializationReminder(void)
 #ifndef UNITY_EXCLUDE_SETJMP_H
         jmp_buf AbortFrame;
 #endif
-    } _Expected_Unity;
+    } Expected_Unity;
 #else
     struct {
         const char* TestFile;
@@ -80,7 +81,7 @@ void testUnitySizeInitializationReminder(void)
 #ifndef UNITY_EXCLUDE_SETJMP_H
         jmp_buf AbortFrame;
 #endif
-    } _Expected_Unity;
+    } Expected_Unity;
 #endif
 
     /* Compare our fake structure's size to the actual structure's size. They
@@ -88,22 +89,22 @@ void testUnitySizeInitializationReminder(void)
      *
      * This accounts for alignment, padding, and packing issues that might come
      * up between different architectures. */
-    TEST_ASSERT_EQUAL_MESSAGE(sizeof(_Expected_Unity), sizeof(Unity), message);
+    TEST_ASSERT_EQUAL_MESSAGE(sizeof(Expected_Unity), sizeof(Unity), message);
 }
 
-void testPassShouldEndImmediatelyWithPass(void)
+UNITY_FUNCTION_ATTR(noreturn) void testPassShouldEndImmediatelyWithPass(void)
 {
     TEST_PASS();
     TEST_FAIL_MESSAGE("We should have passed already and finished this test");
 }
 
-void testPassShouldEndImmediatelyWithPassAndMessage(void)
+UNITY_FUNCTION_ATTR(noreturn) void testPassShouldEndImmediatelyWithPassAndMessage(void)
 {
     TEST_PASS_MESSAGE("Woohoo! This Automatically Passes!");
     TEST_FAIL_MESSAGE("We should have passed already and finished this test");
 }
 
-void testMessageShouldDisplayMessageWithoutEndingAndGoOnToPass(void)
+UNITY_FUNCTION_ATTR(noreturn) void testMessageShouldDisplayMessageWithoutEndingAndGoOnToPass(void)
 {
     TEST_MESSAGE("This is just a message");
     TEST_MESSAGE("This is another message");
@@ -281,7 +282,7 @@ void testProtection(void)
     TEST_ASSERT_EQUAL(3, mask);
 }
 
-void testIgnoredAndThenFailInTearDown(void)
+UNITY_FUNCTION_ATTR(noreturn) void testIgnoredAndThenFailInTearDown(void)
 {
     SetToOneToFailInTearDown = 1;
     TEST_IGNORE();
@@ -292,13 +293,16 @@ void testFailureCountIncrementsAndIsReturnedAtEnd(void)
 #ifndef USING_OUTPUT_SPY
     TEST_IGNORE();
 #else
-    UNITY_UINT savedFailures = Unity.TestFailures;
+    int failures = 0;
+    UNITY_COUNTER_TYPE savedGetFlushSpyCalls = 0;
+    UNITY_COUNTER_TYPE savedFailures = Unity.TestFailures;
     Unity.CurrentTestFailed = 1;
     startPutcharSpy(); /* Suppress output */
     startFlushSpy();
-    TEST_ASSERT_EQUAL(0, getFlushSpyCalls());
+    savedGetFlushSpyCalls = getFlushSpyCalls();
     UnityConcludeTest();
     endPutcharSpy();
+    TEST_ASSERT_EQUAL(0, savedGetFlushSpyCalls);
     TEST_ASSERT_EQUAL(savedFailures + 1, Unity.TestFailures);
 #if defined(UNITY_OUTPUT_FLUSH) && defined(UNITY_OUTPUT_FLUSH_HEADER_DECLARATION)
     TEST_ASSERT_EQUAL(1, getFlushSpyCalls());
@@ -308,7 +312,7 @@ void testFailureCountIncrementsAndIsReturnedAtEnd(void)
     endFlushSpy();
 
     startPutcharSpy(); /* Suppress output */
-    int failures = UnityEnd();
+    failures = UnityEnd();
     Unity.TestFailures--;
     endPutcharSpy();
     TEST_ASSERT_EQUAL(savedFailures + 1, failures);

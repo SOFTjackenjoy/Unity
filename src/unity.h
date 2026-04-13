@@ -1,16 +1,17 @@
-/* ==========================================
-    Unity Project - A Test Framework for C
-    Copyright (c) 2007-21 Mike Karlesky, Mark VanderVoord, Greg Williams
-    [Released under MIT License. Please refer to license.txt for details]
-========================================== */
+/* =========================================================================
+    Unity - A Test Framework for C
+    ThrowTheSwitch.org
+    Copyright (c) 2007-26 Mike Karlesky, Mark VanderVoord, & Greg Williams
+    SPDX-License-Identifier: MIT
+========================================================================= */
 
 #ifndef UNITY_FRAMEWORK_H
 #define UNITY_FRAMEWORK_H
 #define UNITY
 
 #define UNITY_VERSION_MAJOR    2
-#define UNITY_VERSION_MINOR    5
-#define UNITY_VERSION_BUILD    4
+#define UNITY_VERSION_MINOR    6
+#define UNITY_VERSION_BUILD    3
 #define UNITY_VERSION          ((UNITY_VERSION_MAJOR << 16) | (UNITY_VERSION_MINOR << 8) | UNITY_VERSION_BUILD)
 
 #ifdef __cplusplus
@@ -44,7 +45,7 @@ int suiteTearDown(int num_failures);
  * Test Reset and Verify
  *-------------------------------------------------------*/
 
-/* These functions are intended to be called before during tests in order
+/* These functions are intended to be called before or during tests in order
  * to support complex test loops, etc. Both are NOT built into Unity. Instead
  * the test runner generator will create them. resetTest will run teardown and
  * setup again, verifying any end-of-test needs between. verifyTest will only
@@ -89,7 +90,7 @@ void verifyTest(void);
  *     - define UNITY_SUPPORT_TEST_CASES to include the TEST_CASE macro, though really it's mostly about the runner generator script
 
  * Parameterized Tests
- *     - you'll want to create a define of TEST_CASE(...) and/or TEST_RANGE(...) which basically evaluates to nothing
+ *     - you'll want to create a define of TEST_CASE(...), TEST_RANGE(...) and/or TEST_MATRIX(...) which basically evaluates to nothing
 
  * Tests with Arguments
  *     - you'll want to define UNITY_USE_COMMAND_LINE_ARGS if you have the test runner passing arguments to Unity
@@ -105,7 +106,7 @@ void verifyTest(void);
 #define TEST_MESSAGE(message)                                                                      UnityMessage((message), __LINE__)
 #define TEST_ONLY()
 #ifdef UNITY_INCLUDE_PRINT_FORMATTED
-#define TEST_PRINTF(message, ...)                                                                  UnityPrintF(__LINE__, (message), __VA_ARGS__)
+#define TEST_PRINTF(message, ...)                                                                  UnityPrintF(__LINE__, (message), ##__VA_ARGS__)
 #endif
 
 /* It is not necessary for you to call PASS. A PASS condition is assumed if nothing fails.
@@ -113,9 +114,19 @@ void verifyTest(void);
 #define TEST_PASS()                                                                                TEST_ABORT()
 #define TEST_PASS_MESSAGE(message)                                                                 do { UnityMessage((message), __LINE__); TEST_ABORT(); } while (0)
 
-/* This macro does nothing, but it is useful for build tools (like Ceedling) to make use of this to figure out
- * which files should be linked to in order to perform a test. Use it like TEST_FILE("sandwiches.c") */
-#define TEST_FILE(a)
+/*-------------------------------------------------------
+ * Build Directives
+ *-------------------------------------------------------
+
+ * These macros do nothing, but they are useful for additional build context.
+ * Tools (like Ceedling) can scan for these directives and make use of them for 
+ * per-test-executable #include search paths and linking. */
+
+/* Add source files to a test executable's compilation and linking. Ex: TEST_SOURCE_FILE("sandwiches.c") */
+#define TEST_SOURCE_FILE(a)
+
+/* Customize #include search paths for a test executable's compilation. Ex: TEST_INCLUDE_PATH("src/module_a/inc") */
+#define TEST_INCLUDE_PATH(a)
 
 /*-------------------------------------------------------
  * Test Asserts (simple)

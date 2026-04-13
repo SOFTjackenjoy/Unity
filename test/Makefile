@@ -1,16 +1,22 @@
+# =========================================================================
+#   Unity - A Test Framework for C
+#   ThrowTheSwitch.org
+#   Copyright (c) 2007-24 Mike Karlesky, Mark VanderVoord, & Greg Williams
+#   SPDX-License-Identifier: MIT
+# =========================================================================
 CC = gcc
 ifeq ($(shell uname -s), Darwin)
 CC = clang
 endif
 ifeq ($(findstring clang, $(CC)), clang)
 E = -Weverything
-CFLAGS += $E -Wno-unknown-warning-option -Wno-missing-prototypes
-CFLAGS += -Wno-unused-macros -Wno-padded -Wno-missing-noreturn
+CFLAGS += $E -Wno-unknown-warning-option
+CFLAGS += -Wno-unsafe-buffer-usage
 endif
 CFLAGS += -std=c99 -pedantic -Wall -Wextra -Werror
 #CFLAGS += -Wconversion #disabled because if falsely complains about the isinf and isnan macros
 CFLAGS += -Wno-switch-enum -Wno-double-promotion
-CFLAGS += -Wno-poison-system-directories
+CFLAGS += -Wno-covered-switch-default
 CFLAGS += -Wbad-function-cast -Wcast-qual -Wold-style-definition -Wshadow -Wstrict-overflow \
           -Wstrict-prototypes -Wswitch-default -Wundef
 #DEBUG = -O0 -g
